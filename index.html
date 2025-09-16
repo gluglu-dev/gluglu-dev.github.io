@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GluGlu · Undervisning</title>
+  <style>
+    :root{--bg:#0f172a;--panel:#111827;--text:#e5e7eb;--muted:#94a3b8;--primary:#22c55e;--accent:#60a5fa;--r:16px}
+    *{box-sizing:border-box} html,body{height:100%}
+    body{margin:0;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#0b1022,var(--bg));color:var(--text)}
+    .wrap{max-width:960px;margin:28px auto 64px;padding:0 16px}
+    header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+    .brand{font-weight:800;font-size:1.4rem}
+    .tag{color:var(--muted)}
+    .card{background:rgba(17,24,39,.9);border:1px solid rgba(148,163,184,.15);border-radius:var(--r);padding:18px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:10px}
+    .tile{border:1px solid rgba(148,163,184,.25);border-radius:14px;padding:14px}
+    a.btn{display:inline-block;margin-top:8px;padding:10px 14px;border-radius:12px;text-decoration:none;color:var(--text);
+      border:1px solid rgba(148,163,184,.35);background:linear-gradient(180deg,rgba(17,24,39,.6),rgba(17,24,39,.95))}
+    a.btn:hover{border-color:rgba(148,163,184,.6)}
+    nav.top{display:flex;gap:8px;flex-wrap:wrap}
+    footer{margin-top:20px;color:var(--muted);font-size:.9rem}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <div class="brand">GluGlu · Undervisning</div>
+        <div class="tag">Praktiske, trinnvise opplegg for skole og bedrift</div>
+      </div>
+      <nav class="top">
+        <a class="btn" href="lessons/undervisning.html">GitHub Pages-veileder</a>
+        <a class="btn" href="lessons/led.html">LED-krets (første fag)</a>
+      </nav>
+    </header>
+
+    <section class="card">
+      <h1 style="margin:6px 0 8px">Start læringen</h1>
+      <p class="tag">Velg et tema under. Hver leksjon har klare steg, sjekklister og høy lesbarhet.</p>
+      <div class="grid">
+        <div class="tile">
+          <h3>Bygg en nettside med GitHub Pages</h3>
+          <p>Opprett konto, repo, index.html og publiser – perfekt for elever.</p>
+          <a class="btn" href="lessons/undervisning.html">Åpne veileder</a>
+        </div>
+        <div class="tile">
+          <h3>LED-krets: Ohms lov i praksis</h3>
+          <p>Beregn motstand, bygg krets, mål og feilfinn. Lav terskel, høy nytte.</p>
+          <a class="btn" href="lessons/led.html">Åpne leksjon</a>
+        </div>
+      </div>
+      <footer>© GluGlu · kontakt: gluglu.dev2025 [at] gmail [dot] com</footer>
+    </section>
+  </div>
+</body>
+</html>
