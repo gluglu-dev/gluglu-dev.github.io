@@ -1,4 +1,6 @@
-<!doctype html>
+# Vi genererer en oppdatert index.html-fil med OSINT-oppgaven inkludert i både toppnavigasjonen og grid-seksjonen.
+
+index_html_content = """<!doctype html>
 <html lang="no">
 <head>
   <meta charset="utf-8" />
@@ -32,6 +34,7 @@
       <nav class="top">
         <a class="btn" href="lessons/undervisning.html">GitHub Pages-veileder</a>
         <a class="btn" href="lessons/led.html">LED-krets (første fag)</a>
+        <a class="btn" href="lessons/osint_gluglu.html">OSINT Case</a>
       </nav>
     </header>
 
@@ -49,9 +52,23 @@
           <p>Beregn motstand, bygg krets, mål og feilfinn. Lav terskel, høy nytte.</p>
           <a class="btn" href="lessons/led.html">Åpne leksjon</a>
         </div>
+        <div class="tile">
+          <h3>OSINT: Jakten på den skjulte profilen</h3>
+          <p>Lag falske profiler, skjul spor i bilder, og etterforsk hverandres case.</p>
+          <a class="btn" href="lessons/osint_gluglu.html">Start OSINT-oppgave</a>
+        </div>
       </div>
       <footer>© GluGlu · kontakt: gluglu.dev2025 [at] gmail [dot] com</footer>
     </section>
   </div>
 </body>
 </html>
+"""
+
+# Lagre til fil
+output_path = "/mnt/data/index.html"
+with open(output_path, "w", encoding="utf-8") as f:
+    f.write(index_html_content)
+
+output_path
+
