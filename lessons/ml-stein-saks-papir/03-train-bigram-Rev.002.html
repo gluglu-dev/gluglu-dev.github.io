@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<title>RPS – tren med to siste trekk (bigram) + JSON‑innliming</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.21.0/dist/tf.min.js"></script>
+<style>
+  :root{ --bg:#0b1022; --panel:#09102a; --text:#e5e7eb; --muted:#94a3b8; --border:rgba(148,163,184,.3); }
+  body{font-family:system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);padding:20px;margin:0}
+  h2{margin:0 0 10px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;margin:10px 0}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  textarea{width:100%;min-height:180px;background:#0b1022;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .btn{cursor:pointer;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:#111827;color:var(--text);font-weight:700}
+  .btn:hover{border-color:rgba(148,163,184,.6)}
+  .pill{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:#0b1328;color:var(--muted);font-size:12px;margin-right:6px}
+  pre{background:#09102a;padding:12px;border-radius:10px;overflow:auto;border:1px solid var(--border)}
+  table{border-collapse:collapse;margin-top:8px}
+  th,td{border:1px solid var(--border);padding:6px 8px;text-align:center}
+</style>
+</head>
+<body>
+<h2>Saks–Stein–Papir – tren modell (to siste trekk + matrise)</h2>
+
+<div class="card">
+  <p>Kopier JSON fra <strong>01‑collect</strong> og lim inn her (format: <code>[{ "prev":"saks", "next":"stein" }, ...]</code>). Du kan også hente siste datasett fra nettleseren.</p>
+  <textarea id="jsonInput" placeholder='[\n  { "prev": "saks", "next": "stein" }\n]'></textarea>
+  <div class="row" style="margin-top:8px">
+    <button class="btn" id="loadLS">📥 Hent fra nettleser</button>
+    <button class="btn" id="clear">🗑 Tøm</button>
+    <button class="btn" id="train">🧪 Tren</button>
+    <span class="pill">Rader: <span id="count">0</span></span>
+    <span id="status" class="pill" style="opacity:.9"></span>
+  </div>
+</div>
+
+<pre id="out">Lim inn JSON og trykk «Tren» …</pre>
+<div id="mat"></div>
+
+<script>
+// ===== Hjelp =====
+const MOVES = ['saks','stein','papir']; // kompatibel med 01-collect
+const enc = m => m==='saks'?0 : m==='stein'?1 : 2;
+const oneHot = (i, depth=3) => Array.from({length:depth}, (_,k)=>k===i?1:0);
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function counts(arr){ const c=[0,0,0]; arr.forEach(v=>c[v]++); return c; }
+function flash(msg){ const s=document.getElementById('status'); s.textContent=msg; setTimeout(()=>s.textContent='',1500); }
+function normMove(x){
+  const s=(x||'').toString().toLowerCase().trim();
+  if (s.includes('saks')) return 'saks';
+  if (s.includes('stein')) return 'stein';
+  if (s.includes('papir')) return 'papir';
+  throw new Error('Ukjent trekk: ' + x);
+}
+function parseInput(){
+  const txt = document.getElementById('jsonInput').value.trim();
+  if (!txt) return [];
+  let arr = JSON.parse(txt);
+  if (!Array.isArray(arr)) { // evt. {data:[...]}
+    if (arr && Array.isArray(arr.data)) arr = arr.data; else throw new Error('Forventet en liste ([]) med objekter.');
+  }
+  const clean = arr.map(r => ({ prev: normMove(r.prev), next: normMove(r.next) }));
+  document.getElementById('count').textContent = String(clean.length);
+  return clean;
+}
+
+// Baseline: majoritet gitt par (t-2,t-1)
+function makePairBaseline(trainPairs){
+  const C = Array.from({length:9}, ()=>[0,0,0]); // 9 par x 3 next
+  trainPairs.forEach(p => C[p.x][p.y]++);
+  const argmax = arr => arr.indexOf(Math.max(...arr));
+  const pick = C.map(row => argmax(row)); // for par 0..8
+  return pairIdx => pick[pairIdx];
+}
+
+// Forvirringsmatrise + accuracy
+function confusion(trueArr, predArr){
+  const M = [[0,0,0],[0,0,0],[0,0,0]]; let ok=0;
+  for(let i=0;i<trueArr.length;i++){ const t=trueArr[i], p=predArr[i]; if(t===p) ok++; M[t][p]++; }
+  return {M, acc: trueArr.length ? ok/trueArr.length : 0};
+}
+function renderMatrix(M){
+  const mat = document.getElementById('mat');
+  const head = '<tr><th></th><th>pred saks</th><th>pred stein</th><th>pred papir</th></tr>';
+  const rows = MOVES.map((n,i)=> `<tr><th>sann ${n}</th>` + M[i].map(x=>`<td>${x}</td>`).join('') + '</tr>').join('');
+  mat.innerHTML = `<h3>Forvirringsmatrise (test)</h3><table>${head}${rows}</table>`;
+}
+
+// ===== UI-knapper =====
+document.getElementById('loadLS').onclick = ()=>{
+  try{
+    const raw = localStorage.getItem('rps-data-v1');
+    if (!raw) return flash('Fant ikke lagret datasett.');
+    const obj = JSON.parse(raw);
+    const arr = Array.isArray(obj) ? obj : (Array.isArray(obj.data) ? obj.data : []);
+    if (!arr.length) return flash('Lokal lagring er tom.');
+    document.getElementById('jsonInput').value = JSON.stringify(arr, null, 2);
+    document.getElementById('count').textContent = String(arr.length);
+    flash('Lastet fra nettleser');
+  }catch(e){ console.error(e); flash('Klarte ikke å lese fra nettleser'); }
+};
+
+document.getElementById('clear').onclick = ()=>{
+  document.getElementById('jsonInput').value='';
+  document.getElementById('count').textContent='0';
+  document.getElementById('mat').innerHTML='';
+  document.getElementById('out').textContent='Lim inn JSON og trykk «Tren» …';
+};
+
+document.getElementById('train').onclick = async ()=>{
+  try{
+    const data = parseInput();
+    if (data.length < 10) { document.getElementById('out').textContent = 'Legg inn flere runder (minst 15–20) for meningsfull test.'; return; }
+    await runTrainingBigram(data);
+  }catch(err){
+    document.getElementById('out').textContent = 'Ugyldig JSON eller ukjente verdier. Sjekk formatet.\n' + (err?.message||err);
+    console.error(err);
+  }
+};
+
+// ===== Trening (bigram) =====
+async function runTrainingBigram(rows){
+  // 1) Bygg sekvens av dine faktiske trekk (next)
+  const seq = rows.map(r => enc(r.next));
+  if (seq.length < 3){
+    document.getElementById('out').textContent = 'Trenger minst 3 runder for bigram. Spill mer og lim inn på nytt.';
+    return;
+  }
+  // 2) Lag (t-2,t-1) => t par
+  const pairs = [];
+  for (let i=2; i<seq.length; i++){
+    const pairIdx = seq[i-2]*3 + seq[i-1]; // 0..8
+    pairs.push({ x: pairIdx, y: seq[i] }); // x=par, y=label
+  }
+  shuffle(pairs);
+  const X = pairs.map(p => p.x);         // 0..8
+  const Y = pairs.map(p => p.y);         // 0..2
+  const Y_oh = Y.map(i => oneHot(i,3));  // one-hot
+
+  const N = X.length;
+  const trainN = Math.max(1, Math.floor(N*0.7));
+  const xTrain = X.slice(0,trainN), yTrain = Y.slice(0,trainN), yTrainOH = Y_oh.slice(0,trainN);
+  const xTest  = X.slice(trainN),   yTest  = Y.slice(trainN);
+
+  // Fordeling
+  const cTrain = counts(yTrain), cTest = counts(yTest);
+
+  // 3) Baseline
+  const base = makePairBaseline(pairs.slice(0,trainN));
+  const basePred = xTest.map(p => base(p));
+  const baseAcc  = basePred.filter((p,i)=>p===yTest[i]).length / (yTest.length||1);
+
+  // 4) Modell
+  const model = tf.sequential();
+  model.add(tf.layers.embedding({inputDim:9, outputDim:6, inputLength:1})); // 9 par
+  model.add(tf.layers.flatten());
+  model.add(tf.layers.dense({units:6, activation:'relu'}));
+  model.add(tf.layers.dense({units:3, activation:'softmax'}));
+  model.compile({ optimizer:'adam', loss:'categoricalCrossentropy' });
+
+  const xsT = tf.tensor2d(xTrain.map(v=>[v]), [xTrain.length,1], 'int32');
+  const ysT = tf.tensor2d(yTrainOH, [yTrainOH.length,3], 'float32');
+  await model.fit(xsT, ysT, {epochs:25, shuffle:true, verbose:0});
+
+  // Train-acc
+  const trainProbs = model.predict(xsT);
+  const trainIdx = Array.from(trainProbs.argMax(1).dataSync());
+  const trainEval = confusion(yTrain, trainIdx);
+  trainProbs.dispose(); xsT.dispose(); ysT.dispose();
+
+  // Test
+  const xTe = tf.tensor2d(xTest.map(v=>[v]), [xTest.length,1], 'int32');
+  const testProbs = model.predict(xTe);
+  const predIdx = Array.from(testProbs.argMax(1).dataSync());
+  const testEval = confusion(yTest, predIdx);
+  testProbs.dispose(); xTe.dispose();
+
+  // Demo: (STEIN, PAPIR) => 1*3+2 = 5
+  const demo = Array.from(model.predict(tf.tensor2d([[5]], [1,1], 'int32')).dataSync());
+
+  const out = document.getElementById('out');
+  out.textContent =
+`Antall runder (rå): ${seq.length}
+Eksempler (bigram): ${N}
+Train/Test: ${trainN}/${N-trainN}
+Fordeling (train)  saks:${cTrain[0]}  stein:${cTrain[1]}  papir:${cTrain[2]}
+Fordeling (test)   saks:${cTest[0]}   stein:${cTest[1]}   papir:${cTest[2]}
+
+BASELINE (majoritet per (t-2,t-1))
+  Accuracy (test): ${baseAcc.toFixed(3)}
+
+MODELL (tfjs, bigram + one‑hot)
+  Train acc (beregnet): ${trainEval.acc.toFixed(3)}
+  Test accuracy: ${testEval.acc.toFixed(3)}
+
+Demopred (forrige to trekk = STEIN, PAPIR):
+  saks(0): ${demo[0].toFixed(3)}
+  stein(1): ${demo[1].toFixed(3)}
+  papir(2): ${demo[2].toFixed(3)}
+`;
+  renderMatrix(testEval.M);
+}
+</script>
+</body>
+</html>
