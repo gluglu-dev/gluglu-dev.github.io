@@ -3,62 +3,265 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GluGlu · Undervisning</title>
+  <titleGluGlu · Læringsplattform</title>
+  <title>GluGlu · Læringsplattform</title>
   <style>
     :root{--bg:#0f172a;--panel:#111827;--text:#e5e7eb;--muted:#94a3b8;--primary:#22c55e;--accent:#60a5fa;--r:16px}
     *{box-sizing:border-box} html,body{height:100%}
     body{margin:0;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#0b1022,var(--bg));color:var(--text)}
-    .wrap{max-width:960px;margin:28px auto 64px;padding:0 16px}
+    .wrap{max-width:1100px;margin:28px auto 64px;padding:0 16px}
     header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
-    .brand{font-weight:800;font-size:1.4rem}
+    .brand{font-weight:800;font-size:1.5rem;letter-spacing:.2px}
     .tag{color:var(--muted)}
     .card{background:rgba(17,24,39,.9);border:1px solid rgba(148,163,184,.15);border-radius:var(--r);padding:18px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:10px}
-    .tile{border:1px solid rgba(148,163,184,.25);border-radius:14px;padding:14px}
-    a.btn{display:inline-block;margin-top:8px;padding:10px 14px;border-radius:12px;text-decoration:none;color:var(--text);
-      border:1px solid rgba(148,163,184,.35);background:linear-gradient(180deg,rgba(17,24,39,.6),rgba(17,24,39,.95))}
-    a.btn:hover{border-color:rgba(148,163,184,.6)}
-    nav.top{display:flex;gap:8px;flex-wrap:wrap}
-    footer{margin-top:20px;color:var(--muted);font-size:.9rem}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    a.btn, .btn{display:inline-flex;align-items:center;gap:8px;margin-top:0;padding:10px 14px;border-radius:12px;text-decoration:none;color:var(--text);border:1px solid rgba(148,163,184,.35);background:linear-gradient(180deg,rgba(17,24,39,.6),rgba(17,24,39,.95));cursor:pointer}
+    .btn:hover{border-color:rgba(148,163,184,.6)}
+    .btn.ghost{background:transparent}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:12px}
+    .tile{border:1px solid rgba(148,163,184,.25);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
+    .tile h3{margin:0}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;border:1px solid rgba(148,163,184,.3);font-size:.85rem}
+    .pill.free{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.45)}
+    .pill.pro{background:rgba(96,165,250,.12);border-color:rgba(96,165,250,.45)}
+    .tags{display:flex;flex-wrap:wrap;gap:6px}
+    .tagchip{font-size:.8rem;color:var(--muted);border:1px solid rgba(148,163,184,.25);border-radius:999px;padding:2px 8px}
+
+    /* Tabs + search */
+    .topbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:6px 0 2px}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{padding:8px 12px;border-radius:10px;border:1px solid rgba(148,163,184,.35);background:linear-gradient(180deg,rgba(17,24,39,.6),rgba(17,24,39,.95));cursor:pointer}
+    .tab[aria-selected="true"]{border-color:rgba(34,197,94,.6);box-shadow:0 0 0 2px rgba(34,197,94,.2) inset}
+    .search{display:flex;gap:8px;align-items:center}
+    .search input{width:240px;max-width:50vw;background:#0b1022;border:1px solid rgba(148,163,184,.35);border-radius:10px;color:var(--text);padding:10px 12px}
+
+    footer{margin-top:18px;color:var(--muted);font-size:.9rem;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+    .switch{position:relative;width:56px;height:30px;background:rgba(148,163,184,.3);border-radius:999px;border:1px solid rgba(148,163,184,.4);cursor:pointer}
+    .switch span{position:absolute;top:2px;left:2px;width:26px;height:26px;border-radius:999px;background:#fff;transition:left .2s ease}
+    .switch[data-on="true"] span{left:28px}
+
+    /* High contrast */
+    body.hc{--bg:#000;--panel:#000;--text:#fff;--muted:#ddd;--primary:#0f0;--accent:#0ff}
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
       <div>
-        <div class="brand">GluGlu · Undervisning</div>
-        <div class="tag">Praktiske, trinnvise opplegg for skole og bedrift</div>
+        <div class="brand">GluGlu · Læringsplattform</div>
+        <div class="tag">Kategoribasert læring – nå med Teknologi, Cybersikkerhet og KI</div>
       </div>
-      <nav class="top">
+      <div class="toolbar">
         <a class="btn" href="lessons/undervisning.html">GitHub Pages-veileder</a>
-        <a class="btn" href="lessons/led.html">LED-krets (første fag)</a>
+        <a class="btn" href="lessons/led.html">LED-krets</a>
         <a class="btn" href="lessons/osint_gluglu.html">OSINT Case</a>
-      </nav>
+      </div>
     </header>
 
     <section class="card">
-      <h1 style="margin:6px 0 8px">Start læringen</h1>
-      <p class="tag">Velg et tema under. Hver leksjon har klare steg, sjekklister og høy lesbarhet.</p>
-      <div class="grid">
-        <div class="tile">
-          <h3>Bygg en nettside med GitHub Pages</h3>
-          <p>Opprett konto, repo, index.html og publiser – perfekt for elever.</p>
-          <a class="btn" href="lessons/undervisning.html">Åpne veileder</a>
+      <div class="topbar">
+        <div class="tabs" role="tablist" aria-label="Kategorier">
+          <button class="tab" role="tab" aria-selected="true" data-filter="alle">Alle</button>
+          <button class="tab" role="tab" aria-selected="false" data-filter="teknologi">Teknologi</button>
+          <button class="tab" role="tab" aria-selected="false" data-filter="cyber">Cybersikkerhet</button>
+          <!-- NY TAB -->
+          <button class="tab" role="tab" aria-selected="false" data-filter="ki">KI</button>
         </div>
-        <div class="tile">
-          <h3>LED-krets: Ohms lov i praksis</h3>
-          <p>Beregn motstand, bygg krets, mål og feilfinn. Lav terskel, høy nytte.</p>
-          <a class="btn" href="lessons/led.html">Åpne leksjon</a>
-        </div>
-        <div class="tile">
-          <h3>OSINT: Jakten på den skjulte profilen</h3>
-          <p>Lag falske profiler, skjul spor i bilder, og etterforsk hverandres case.</p>
-          <a class="btn" href="lessons/osint_gluglu.html">Start OSINT-oppgave</a>
+        <div class="search">
+          <input id="q" type="search" placeholder="Søk i temaer, tags…" aria-label="Søk" />
+          <button id="clear" class="btn ghost" aria-label="Tøm søk">❌</button>
+          <div title="Høy-kontrast" class="switch" id="hc"><span></span></div>
         </div>
       </div>
-      <footer>© GluGlu · kontakt: gluglu.dev2025 [at] gmail [dot] com</footer>
+
+      <h1 style="margin:6px 0 4px">Utforsk temaer</h1>
+      <p class="tag">Hver leksjon har klare steg, sjekklister og høy lesbarhet. Filtrer på kategori og søk i tags.</p>
+
+      <div id="grid" class="grid" aria-live="polite"></div>
+
+      <footer>
+        <span>© GluGlu · kontakt: gluglu.dev2025 [at] gmail [dot] com</span>
+        <span id="count" aria-live="polite"></span>
+      </footer>
     </section>
   </div>
+
+  <script>
+    // === Data: legg til/endre her etter hvert som GluGlu vokser ===
+    const LESSONS = [
+      {
+        title: "Bygg en nettside med GitHub Pages",
+        desc: "Opprett konto, repo, index.html og publiser – perfekt for elever.",
+        href: "lessons/undervisning.html",
+        category: "teknologi",
+        tags: ["web", "html", "git", "github", "publisering"],
+        tier: "free"
+      },
+      {
+        title: "LED-krets: Ohms lov i praksis",
+        desc: "Beregn motstand, bygg krets, mål og feilfinn. Lav terskel, høy nytte.",
+        href: "lessons/led.html",
+        category: "teknologi",
+        tags: ["elektronikk", "ohmsLov", "måling"],
+        tier: "free"
+      },
+      {
+        title: "OSINT: Jakten på den skjulte profilen",
+        desc: "Lag falske profiler, skjul spor i bilder, og etterforsk hverandres case.",
+        href: "lessons/osint_gluglu.html",
+        category: "cyber",
+        tags: ["osint", "metadata", "steganografi", "etterforskning"],
+        tier: "free"
+      },
+      {
+        title: "OWASP Top 10 – Broken Access Control",
+        desc: "Forstå IDOR og objektnivå-autorisasjon. Demo med Juice Shop.",
+        href: "lessons/broken-access-control.html",
+        category: "cyber",
+        tags: ["owasp", "webappsec", "idor", "autorisasjon", "asvs"],
+        tier: "free"
+      },
+
+      /* ---------- NY KATEGORI: KI ---------- */
+      {
+        title: "ML: Stein–Saks–Papir (nybegynner)",
+        desc: "Samle data i nettleseren og tren tre små modeller (one-hot, bigram, lineær).",
+        href: "lessons/ml-stein-saks-papir/ml-stein-saks-papir-Rev.002.html",
+        category: "ki",
+        tags: ["ml", "maskinlæring", "tfjs", "datasett", "spill"],
+        tier: "free"
+      },
+
+      // Eksempler på fremtidige Pro-moduler (kan skjules/vises etter behov)
+      {
+        title: "Pro: LTI-integrasjon (Moodle/Canvas)",
+        desc: "Koble GluGlu til LMS med resultatoverføring og SSO.",
+        href: "pro/lti.html",
+        category: "cyber",
+        tags: ["lti", "lms", "sso", "integrasjon"],
+        tier: "pro"
+      },
+      {
+        title: "Pro: Rapportgenerator for kurs/quiz",
+        desc: "Eksporter progresjon, scoreboards og compliance-oversikt.",
+        href: "pro/reports.html",
+        category: "teknologi",
+        tags: ["rapport", "analyse", "export"],
+        tier: "pro"
+      }
+    ];
+
+    // === UI helpers ===
+    const grid = document.getElementById('grid');
+    const count = document.getElementById('count');
+    const tabs = Array.from(document.querySelectorAll('.tab'));
+    const q = document.getElementById('q');
+    const clearBtn = document.getElementById('clear');
+    const hc = document.getElementById('hc');
+
+    // Persist category + query + HC
+    const storeKey = 'gluglu-home-v1';
+    const state = { filter: 'alle', query: '', hc: false };
+
+    (function load(){
+      try{
+        const saved = JSON.parse(localStorage.getItem(storeKey) || '{}');
+        if (saved.filter) state.filter = saved.filter;
+        if (typeof saved.query === 'string') state.query = saved.query;
+        if (typeof saved.hc === 'boolean') {
+          state.hc = saved.hc;
+          document.body.classList.toggle('hc', state.hc);
+          hc.setAttribute('data-on', state.hc ? 'true' : 'false');
+        }
+      }catch{}
+      q.value = state.query;
+      tabs.forEach(t => t.setAttribute('aria-selected', t.dataset.filter === state.filter ? 'true':'false'));
+    })();
+
+    function save(){ localStorage.setItem(storeKey, JSON.stringify(state)); }
+
+    function badge(tier){
+      const el = document.createElement('span');
+      el.className = 'pill ' + (tier === 'pro' ? 'pro' : 'free');
+      el.textContent = (tier === 'pro' ? 'Pro' : 'Free');
+      return el;
+    }
+
+    function chip(text){
+      const el = document.createElement('span');
+      el.className = 'tagchip';
+      el.textContent = text;
+      return el;
+    }
+
+    function tile(item){
+      const card = document.createElement('article');
+      card.className = 'tile';
+      const h = document.createElement('h3'); h.textContent = item.title; card.appendChild(h);
+      const p = document.createElement('p'); p.textContent = item.desc; card.appendChild(p);
+      const row = document.createElement('div'); row.style.display='flex'; row.style.gap='8px'; row.style.flexWrap='wrap'; row.appendChild(badge(item.tier)); card.appendChild(row);
+      const tags = document.createElement('div'); tags.className = 'tags'; item.tags.forEach(t => tags.appendChild(chip(t))); card.appendChild(tags);
+      const a = document.createElement('a'); a.className='btn'; a.href=item.href; a.textContent='Åpne'; card.appendChild(a);
+      card.setAttribute('data-category', item.category);
+      card.setAttribute('data-tier', item.tier);
+      card.setAttribute('data-tags', item.tags.join(' ').toLowerCase());
+      return card;
+    }
+
+    function render(){
+      grid.innerHTML = '';
+      const query = (state.query || '').trim().toLowerCase();
+      let items = LESSONS.slice();
+
+      // Filter category
+      if (state.filter !== 'alle') items = items.filter(i => i.category === state.filter);
+
+      // Filter query (title/desc/tags)
+      if (query){
+        items = items.filter(i =>
+          (i.title.toLowerCase().includes(query)) ||
+          (i.desc.toLowerCase().includes(query)) ||
+          (i.tags.join(' ').toLowerCase().includes(query))
+        );
+      }
+
+      // Sort: free først, så alfabetisk (fremtidsvennlig)
+      items.sort((a,b)=>{
+        if (a.tier !== b.tier) return a.tier === 'free' ? -1 : 1;
+        return a.title.localeCompare(b.title, 'no');
+      });
+
+      items.forEach(i => grid.appendChild(tile(i)));
+      count.textContent = `${items.length} resultat${items.length===1?'':'er'}`;
+    }
+
+    // Tab handling
+    tabs.forEach(t=>{
+      t.addEventListener('click', ()=>{
+        tabs.forEach(x => x.setAttribute('aria-selected','false'));
+        t.setAttribute('aria-selected','true');
+        state.filter = t.dataset.filter;
+        save(); render();
+      });
+      t.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); t.click(); }
+      });
+    });
+
+    // Search
+    q.addEventListener('input', ()=>{ state.query = q.value; save(); render(); });
+    clearBtn.addEventListener('click', ()=>{ q.value=''; state.query=''; save(); render(); q.focus(); });
+
+    // High-contrast
+    hc.addEventListener('click', ()=>{
+      state.hc = !state.hc;
+      document.body.classList.toggle('hc', state.hc);
+      hc.setAttribute('data-on', state.hc ? 'true' : 'false');
+      save();
+    });
+
+    // Init
+    render();
+  </script>
 </body>
 </html>
-
