@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ML grunnkurs – Stein–saks–papir (Rev.002 · GluGlu)</title>
+  <style>
+    :root {
+      --bg: #0f172a; /* slate-900 */
+      --panel: #111827; /* gray-900 */
+      --text: #e5e7eb; /* gray-200 */
+      --muted: #94a3b8; /* slate-400 */
+      --primary: #22c55e; /* green-500 */
+      --primary-2: #16a34a; /* green-600 */
+      --accent: #60a5fa; /* blue-400 */
+      --warn: #f59e0b; /* amber-500 */
+      --danger: #ef4444; /* red-500 */
+      --radius: 16px;
+      --shadow: 0 10px 25px rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg, #0b1022, var(--bg));
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .container { max-width: 960px; margin: 24px auto 64px; padding: 0 16px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+    .brand { font-size: 1.4rem; font-weight: 800; letter-spacing: .2px; }
+    .tag { color: var(--muted); font-size: .95rem; }
+
+    .card { background: rgba(17,24,39,.85); border: 1px solid rgba(148,163,184,.15); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .card > .content { padding: 18px; }
+    .hero { display: grid; grid-template-columns: 1.1fr .9fr; gap: 16px; }
+    @media (max-width: 860px){ .hero { grid-template-columns: 1fr; } }
+
+    .pill { display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border-radius: 999px; font-weight: 600; }
+    .pill.ok { background: rgba(34,197,94,.15); color: #bbf7d0; border: 1px solid rgba(34,197,94,.35); }
+    .pill.info { background: rgba(96,165,250,.12); color:#dbeafe; border: 1px solid rgba(96,165,250,.35); }
+
+    .goals { display:flex; flex-wrap:wrap; gap:8px; margin: 8px 0 0; }
+
+    .toolbar { display:flex; flex-wrap:wrap; gap:8px; }
+    .btn {
+      appearance: none; outline: none; border: 1px solid rgba(148,163,184,.25);
+      background: linear-gradient(180deg, rgba(17,24,39,.6), rgba(17,24,39,.95));
+      color: var(--text); padding: 10px 14px; border-radius: 12px; cursor: pointer;
+      font-weight: 700; letter-spacing: .2px; transition: transform .04s ease, border-color .2s, background .2s;
+    }
+    .btn:hover { transform: translateY(-1px); border-color: rgba(148,163,184,.5); }
+    .btn:active { transform: translateY(0); }
+    .btn.primary { border-color: rgba(34,197,94,.5); background: linear-gradient(180deg, rgba(20,83,45,.55), rgba(22,163,74,.3)); }
+    .btn.ghost { background: transparent; }
+    .btn.small { padding: 8px 12px; font-weight: 600; }
+
+    .progress { height: 10px; border-radius: 999px; background: rgba(148,163,184,.2); overflow: hidden; }
+    .progress > span { display:block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width .3s ease; }
+
+    .layout { display:grid; grid-template-columns: 280px 1fr; gap: 16px; margin-top: 16px; }
+    @media (max-width: 980px){ .layout { grid-template-columns: 1fr; } }
+
+    .sidebar { position: sticky; top: 12px; align-self: start; }
+    .step-list { list-style: none; padding: 0; margin: 0; display:flex; flex-direction: column; gap:8px; }
+    .step-item { border:1px solid rgba(148,163,184,.2); border-radius: 12px; overflow: hidden; }
+    .step-item button { width: 100%; text-align: left; background: transparent; border: 0; color: var(--text); cursor: pointer; padding: 12px 14px; display:flex; align-items:center; gap:10px; }
+    .step-item[aria-current="step"] { border-color: rgba(34,197,94,.5); box-shadow: inset 0 0 0 1px rgba(34,197,94,.35); }
+
+    .status-dot { width: 10px; height: 10px; border-radius: 999px; background: rgba(148,163,184,.5); }
+    .done .status-dot { background: var(--primary); }
+    .active .status-dot { background: var(--accent); box-shadow: 0 0 0 4px rgba(96,165,250,.2); }
+
+    .step { display:none; }
+    .step.active { display:block; }
+    .step h3 { margin: 0 0 8px; font-size: 1.1rem; }
+    .step .panel { padding: 14px; background: rgba(2,6,23,.65); border: 1px dashed rgba(148,163,184,.3); border-radius: 12px; }
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono"; background:#0b1022; border:1px solid rgba(148,163,184,.3); border-bottom-width: 3px; padding: 2px 6px; border-radius: 6px; }
+
+    .nav { display:flex; gap:8px; justify-content: space-between; margin-top: 12px; }
+
+    .footnote { color: var(--muted); font-size: .9rem; margin-top: 8px; }
+
+    .toggle-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .switch { position: relative; width: 56px; height: 30px; background: rgba(148,163,184,.3); border-radius: 999px; cursor: pointer; border:1px solid rgba(148,163,184,.4); }
+    .switch span { position:absolute; top:2px; left:2px; width:26px; height:26px; border-radius: 999px; background: #fff; transition: left .2s ease; }
+    .switch[data-on="true"] span { left:28px; }
+
+    /* High-contrast mode */
+    body.hc { --bg: #000; --panel: #000; --text: #fff; --muted: #ddd; --primary: #0f0; --accent: #0ff; --warn: #ff0; --danger: #f00; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <div class="brand">ML · Veileder (GluGlu)</div>
+        <div class="tag">Forutsigbar, trinnvis læring – tilpasset elever med behov for tydelig struktur</div>
+      </div>
+      <div class="toolbar">
+        <button id="resetProgress" class="btn ghost small" aria-label="Nullstill fremdrift">🔄 Nullstill</button>
+        <button id="toggleAll" class="btn ghost small" aria-label="Vis alle steg">📋 Listevisning</button>
+        <button id="printBtn" class="btn ghost small" aria-label="Skriv ut">🖨️ Skriv ut</button>
+      </div>
+    </header>
+
+    <section class="card hero">
+      <div class="content">
+        <div class="pill ok">🎯 Leksjonsmål</div>
+        <h1 style="margin:10px 0 8px">ML grunnkurs – Stein–saks–papir (Rev.002)</h1>
+        <p class="footnote">I dag skal du: (1) forstå kjernebegreper i ML, (2) samle et lite datasett fra et stein–saks–papir‑spill,
+          (3) trene enkle modeller i nettleseren, (4) teste, sammenligne og reflektere.</p>
+        <div class="goals">
+          <span class="pill info"> Fast fremdrift</span>
+          <span class="pill info"> Små, tydelige steg</span>
+          <span class="pill info"> Eget tempo</span>
+          <span class="pill info"> Sjekkliste</span>
+        </div>
+        <div style="margin:12px 0 6px; font-weight:700">Fremdrift</div>
+        <div class="progress" aria-label="Fremdrift"><span id="progressBar"></span></div>
+        <div class="footnote">Tips: Fullfør hvert steg og trykk «Marker som fullført».</div>
+      </div>
+      <div class="content" style="border-left:1px solid rgba(148,163,184,.12)">
+        <div class="toggle-row" style="margin-bottom:10px">
+          <div>Høy-kontrast:</div>
+          <div id="hcSwitch" class="switch" role="switch" aria-checked="false" tabindex="0"><span></span></div>
+        </div>
+        <div class="panel">
+          <strong>Hva trenger du?</strong>
+          <ul>
+            <li>PC med nettleser</li>
+            <li>(Valgfritt) VS Code eller teksteditor</li>
+            <li>(Valgfritt) Internettilgang for TF.js</li>
+          </ul>
+          <strong>Begreper</strong>
+          <ul>
+            <li><span class="kbd">Feature</span> = input‑variabel</li>
+            <li><span class="kbd">Label</span> = riktig svar</li>
+            <li><span class="kbd">Train/Test</span> = lære vs. evaluere</li>
+            <li><span class="kbd">Overfitting</span> = flink på trening, dårlig på nye data</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <aside class="sidebar card">
+        <div class="content">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px">
+            <strong>Stegene</strong>
+            <span id="doneCount" class="footnote">0 fullført</span>
+          </div>
+          <ol id="stepList" class="step-list" aria-label="Stegliste"></ol>
+        </div>
+      </aside>
+
+      <main class="card">
+        <div class="content">
+          <div id="steps"></div>
+          <div class="nav">
+            <button id="prevBtn" class="btn">← Forrige</button>
+            <button id="doneBtn" class="btn primary">✅ Marker som fullført</button>
+            <button id="nextBtn" class="btn">Neste →</button>
+          </div>
+          <div class="footnote">Denne veilederen lagrer fremdriften din i nettleseren (lokalt). Du kan trygt lukke og åpne siden igjen.</div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // === LÆRER: Rediger stegene her ===
+    const LESSON_ID = 'ml-ssp-v002';
+    const stepsData = [
+      {
+        title: 'Introduksjon (hva er ML?)',
+        body: `Maskinlæring lar en modell <em>lære mønstre</em> fra data, i stedet for at vi programmerer alle regler selv.
+        I denne leksjonen bruker vi stein–saks–papir til å lage et <b>lite datasett</b> og trene <b>enkle modeller</b> i nettleseren.`,
+        checklist: ['Kan forklare ML med egne ord (1–2 setninger)']
+      },
+      {
+        title: 'Etikk og ansvar',
+        body: `Tenk på <b>rettferdighet</b>, <b>personvern</b> og <b>konsekvenser</b>. Vi bruker våre egne spilldata – trygt og ryddig.
+        Husk: Små datasett kan gi skjeve modeller.`,
+        checklist: ['Nevnt ett etisk hensyn ved bruk av ML']
+      },
+      {
+        title: 'Begreper: feature, label, train/test',
+        body: `I spillet blir <em>forrige trekk</em> en <span class="kbd">feature</span> (input), og <em>neste trekk</em> er <span class="kbd">label</span>.
+        Vi deler i <span class="kbd">train</span> (70%) og <span class="kbd">test</span> (30%) for å sjekke om modellen generaliserer.`,
+        checklist: ['Kan forklare forskjellen på train og test']
+      },
+      {
+        title: 'Spill og samle data (10–20 runder)',
+        body: `Åpne samlesiden, spill runder og kopier datasettet når du er klar. <br/><br/>
+        <b>Slik gjør du:</b> Åpne siden under, spill og bruk knappene <em>Kopier JSON</em> eller <em>Last ned .json</em>.`,
+        links: [{ href: '01-collect.html', label: '🎮 01 – Samle data' }],
+        checklist: ['Spilt minst 10 runder', 'Datasettet vises som JSON']
+      },
+      {
+        title: 'Tren modell – one‑hot + matrise',
+        body: `Lim inn datasettet i treneren og tren. Sammenlign <em>baseline</em> (telle‑regel) med modellen. Studer forvirringsmatrisen (hvor bommer vi?).`,
+        links: [{ href: '02-train-onehot-Rev.002.html', label: '🧪 02 – Tren (one‑hot)' }],
+        checklist: ['Trent modellen', 'Notert test accuracy', 'Nevnt 1–2 feiltyper fra matrisen']
+      },
+      {
+        title: 'Utvid: to siste trekk (bigram)',
+        body: `Test om to siste trekk (t‑2, t‑1) hjelper. Lim inn samme datasett og sammenlign resultatene med forrige steg.`,
+        links: [{ href: '03-train-bigram-Rev.002.html', label: '🧪 03 – Tren (bigram)' }],
+        checklist: ['Kjørt bigram‑modellen', 'Sammenlignet baseline vs modell', 'Kort konklusjon: ble det bedre?']
+      },
+      {
+        title: 'Alternativ: lineær softmax (uten embedding)',
+        body: `Prøv den enkleste modellen: lineær softmax på 9 én‑hot innganger (alle par). Lett å tolke – fint til muntlig forklaring.`,
+        links: [{ href: '04-train-linear-Rev.002.html', label: '🧪 04 – Tren (bigram + lineær)' }],
+        checklist: ['Trent lineær‑modellen', 'Notert test accuracy', 'Hva var lettest å tolke – lineær eller «NN»?']
+      },
+      {
+        title: 'Test og forvirringsmatrise (egen utforsking)',
+        body: `Skriv ned 5 manuelle tester (forrige eller forrige to trekk) og se hva modellen gjetter. Hvor tar den oftest feil?`,
+        checklist: ['Notert 2 feilmoduser modellen gjør']
+      },
+      {
+        title: 'Overfitting og datakvalitet',
+        body: `Hvis modellen er supergod på trening men dårlig på test, <em>overfitter</em> den. Løsning: mer variasjon, evt. enklere modell eller færre epochs.`,
+        checklist: ['Skrevet ett tiltak mot overfitting']
+      },
+      {
+        title: 'Mini‑presentasjon (60–90 sek)',
+        body: `Vis datasettet ditt, beskriv modellen(e) og del testresultater. Hva lærte du?`,
+        checklist: ['Kort presentasjon gjennomført']
+      },
+      {
+        title: 'Refleksjon',
+        body: `Når er <em>enkle regler</em> bedre enn ML? Når gir ML faktisk verdi? Svar med 2–3 setninger og ett eksempel fra hverdagen.`,
+        checklist: ['Refleksjon levert']
+      }
+    ];
+
+    // === App state ===
+    const state = { active: 0, done: new Set(), allOpen: false };
+
+    // Load from localStorage
+    (()=>{
+      const raw = localStorage.getItem(LESSON_ID);
+      if (raw) {
+        try {
+          const saved = JSON.parse(raw);
+          if (typeof saved.active === 'number') state.active = saved.active;
+          if (Array.isArray(saved.done)) state.done = new Set(saved.done);
+          if (typeof saved.allOpen === 'boolean') state.allOpen = saved.allOpen;
+          if (typeof saved.hc === 'boolean') document.body.classList.toggle('hc', saved.hc);
+          document.getElementById('hcSwitch')?.setAttribute('data-on', saved.hc ? 'true' : 'false');
+          document.getElementById('hcSwitch')?.setAttribute('aria-checked', saved.hc ? 'true' : 'false');
+        } catch {}
+      }
+    })();
+
+    function save(){
+      const hc = document.body.classList.contains('hc');
+      localStorage.setItem(LESSON_ID, JSON.stringify({ active: state.active, done: [...state.done], allOpen: state.allOpen, hc }));
+    }
+
+    const stepsRoot   = document.getElementById('steps');
+    const stepList    = document.getElementById('stepList');
+    const progressBar = document.getElementById('progressBar');
+    const doneCount   = document.getElementById('doneCount');
+
+    function renderSideList(){
+      stepList.innerHTML = '';
+      stepsData.forEach((s, i)=>{
+        const li = document.createElement('li');
+        li.className = 'step-item' + (state.done.has(i)?' done':'') + (state.active===i?' active':'');
+        li.setAttribute('aria-current', state.active===i ? 'step' : 'false');
+        const btn = document.createElement('button');
+        btn.innerHTML = `<span class="status-dot"></span><span style="flex:1">${i+1}. ${s.title}</span>`;
+        btn.addEventListener('click', ()=>{ state.active = i; render(); save(); window.scrollTo({ top: 0, behavior: 'smooth'}); });
+        li.appendChild(btn);
+        stepList.appendChild(li);
+      });
+    }
+
+    function codeBlock(html){
+      const pre = document.createElement('pre');
+      pre.style.background = '#0b1022';
+      pre.style.border = '1px solid rgba(148,163,184,.25)';
+      pre.style.borderRadius = '12px';
+      pre.style.padding = '12px';
+      pre.style.overflow = 'auto';
+      pre.style.whiteSpace = 'pre-wrap';
+      pre.style.wordBreak = 'break-word';
+      const code = document.createElement('code');
+      code.textContent = html;
+      pre.appendChild(code);
+      return pre;
+    }
+
+    function linkRow(links){
+      const wrap = document.createElement('div');
+      wrap.style.display = 'flex';
+      wrap.style.flexWrap = 'wrap';
+      wrap.style.gap = '8px';
+      links.forEach(l => {
+        const a = document.createElement('a');
+        a.href = l.href; a.target = '_blank'; a.rel = 'noreferrer noopener';
+        a.className = 'btn small';
+        a.textContent = '🔗 ' + l.label;
+        wrap.appendChild(a);
+      });
+      return wrap;
+    }
+
+    function renderSteps(){
+      stepsRoot.innerHTML = '';
+      stepsData.forEach((s, i)=>{
+        const step = document.createElement('section');
+        step.className = 'step' + ((state.active===i || state.allOpen)?' active':'');
+        step.setAttribute('data-index', i);
+        const h = document.createElement('h3'); h.innerHTML = `${i+1}. ${s.title}`; step.appendChild(h);
+        const body = document.createElement('div'); body.className = 'panel'; body.innerHTML = (s.body||'').replaceAll('\n','<br/>'); step.appendChild(body);
+        if (s.code) step.appendChild(codeBlock(s.code));
+        if (s.links) step.appendChild(linkRow(s.links));
+        if (s.checklist?.length){
+          const list = document.createElement('ul'); list.style.marginTop = '8px';
+          s.checklist.forEach((item,j)=>{
+            const id = `c_${i}_${j}`;
+            const li = document.createElement('li');
+            const label = document.createElement('label'); label.style.display = 'flex'; label.style.alignItems = 'center'; label.style.gap = '8px';
+            const cb = document.createElement('input'); cb.type = 'checkbox'; cb.id = id;
+            cb.checked = localStorage.getItem(LESSON_ID + ':' + id) === '1';
+            cb.addEventListener('change', ()=>{ localStorage.setItem(LESSON_ID + ':' + id, cb.checked? '1':'0'); });
+            label.appendChild(cb);
+            const span = document.createElement('span'); span.textContent = item; label.appendChild(span);
+            li.appendChild(label); list.appendChild(li);
+          });
+          step.appendChild(list);
+        }
+        stepsRoot.appendChild(step);
+      });
+    }
+
+    function renderProgress(){
+      const total = stepsData.length;
+      const done = state.done.size;
+      const pct = Math.round((done/total)*100);
+      progressBar.style.width = pct + '%';
+      doneCount.textContent = `${done} fullført`;
+    }
+
+    function render(){
+      renderSideList();
+      renderSteps();
+      renderProgress();
+      document.getElementById('prevBtn').disabled = (state.active === 0);
+      document.getElementById('nextBtn').disabled = (state.active === stepsData.length-1);
+      document.getElementById('doneBtn').textContent = state.done.has(state.active) ? '☑️ Markert – angre?' : '✅ Marker som fullført';
+      document.getElementById('toggleAll').textContent = state.allOpen ? '📋 Skjul liste' : '📋 Listevisning';
+    }
+
+    // Controls
+    document.getElementById('prevBtn').addEventListener('click', ()=>{ if (state.active>0){ state.active--; render(); save(); window.scrollTo({ top: 0, behavior: 'smooth'});} });
+    document.getElementById('nextBtn').addEventListener('click', ()=>{ if (state.active<stepsData.length-1){ state.active++; render(); save(); window.scrollTo({ top: 0, behavior: 'smooth'});} });
+    document.getElementById('doneBtn').addEventListener('click', ()=>{
+      if (state.done.has(state.active)) state.done.delete(state.active); else state.done.add(state.active);
+      render(); save();
+    });
+    document.getElementById('toggleAll').addEventListener('click', ()=>{ state.allOpen = !state.allOpen; render(); save(); });
+    document.getElementById('resetProgress').addEventListener('click', ()=>{
+      if (confirm('Vil du nullstille fremdriften?')){
+        state.active = 0; state.done = new Set();
+        // Rens sjekklister
+        Object.keys(localStorage).forEach(k=>{ if (k.startsWith(LESSON_ID+':')) localStorage.removeItem(k); });
+        render(); save();
+      }
+    });
+    document.getElementById('printBtn').addEventListener('click', ()=>{ window.print(); });
+
+    // High-contrast toggle
+    const hcSwitch = document.getElementById('hcSwitch');
+    function setHC(on){
+      document.body.classList.toggle('hc', !!on);
+      hcSwitch.setAttribute('data-on', on ? 'true' : 'false');
+      hcSwitch.setAttribute('aria-checked', on ? 'true' : 'false');
+      save();
+    }
+    hcSwitch.addEventListener('click', ()=> setHC(!document.body.classList.contains('hc')));
+    hcSwitch.addEventListener('keydown', (e)=>{ if (e.key===' '|| e.key==='Enter'){ e.preventDefault(); setHC(!document.body.classList.contains('hc')); } });
+
+    // Initial render
+    render();
+  </script>
+
+  <!--
+  =============================
+  BRUKSANVISNING (lærer)
+  1) Lagre denne fila som ml-stein-saks-papir-Rev.002.html i repoet.
+  2) Legg trener-filene i samme mappe: 01-collect.html, 02-train-onehot-Rev.002.html, 03-train-bigram-Rev.002.html, 04-train-linear-Rev.002.html.
+  3) Åpne i nettleser. Elevene går steg for steg og åpner trener-sidene i nye faner.
+  4) Lokal lagring (fremdrift + sjekklister) og høy-kontrast er innebygd.
+  =============================
+  -->
+</body>
+</html>
