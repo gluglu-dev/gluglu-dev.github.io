@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <title>Saks–Stein–Papir – datainnsamling + kopier</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0b1022; --panel:#09102a; --text:#e5e7eb; --muted:#94a3b8;
+      --border:#334155; --accent:#60a5fa; --ok:#22c55e; --danger:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);padding:20px;margin:0}
+    h2{margin:8px 0 6px}
+    .row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+    .card{background:var(--panel);border:1px solid rgba(148,163,184,.25);border-radius:12px;padding:14px}
+    #buttons button{
+      padding:10px 14px;margin:6px;border-radius:10px;border:1px solid #607;cursor:pointer;
+      background:#111827;color:var(--text);font-weight:600
+    }
+    #log{margin:6px 0 8px;color:var(--muted)}
+    pre{background:var(--panel);padding:12px;border-radius:10px;border:1px solid rgba(148,163,184,.25);overflow:auto;max-height:50vh}
+    .tools{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+    .btn{
+      cursor:pointer;padding:10px 12px;border-radius:10px;border:1px solid rgba(148,163,184,.35);
+      background:#111827;color:var(--text);font-weight:700
+    }
+    .btn:hover{border-color:rgba(148,163,184,.6)}
+    .btn.ok{border-color:rgba(34,197,94,.5)}
+    .btn.danger{border-color:rgba(239,68,68,.6)}
+    .pill{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:#0b1328;color:var(--muted);font-size:12px}
+    #status{min-height:1.2em;color:var(--muted)}
+    .count{font-weight:700}
+    .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media (max-width:900px){ .cols{grid-template-columns:1fr} }
+    code.kbd{background:#0b1022;border:1px solid rgba(148,163,184,.25);padding:2px 6px;border-radius:6px}
+  </style>
+</head>
+<body>
+  <h2>Saks–Stein–Papir – spill og samle data</h2>
+  <p>Klikk et trekk. Hver runde (fra runde 2) lagrer en rad <code class="kbd">{ prev, next }</code>. Bruk knappene under for å kopiere/lagre datasettet.</p>
+
+  <div id="buttons"></div>
+  <div id="log" aria-live="polite"></div>
+
+  <div class="tools">
+    <span class="pill">Rader: <span id="count" class="count">0</span></span>
+    <button id="copyJsonBtn" class="btn">📋 Kopier JSON</button>
+    <button id="copyMdBtn" class="btn">📋 Kopier som Markdown</button>
+    <button id="downloadBtn" class="btn ok">⬇️ Last ned .json</button>
+    <button id="clearBtn" class="btn danger">🗑 Tøm</button>
+    <span id="status"></span>
+  </div>
+
+  <div class="cols">
+    <div class="card" aria-label="JSON-data">
+      <strong>JSON</strong>
+      <pre id="dataOut"></pre>
+    </div>
+    <div class="card" aria-label="Markdown-snutt">
+      <strong>Markdown (for dokumenter/innlevering)</strong>
+      <pre id="mdOut"></pre>
+    </div>
+  </div>
+
+  <script>
+    // --- Grunnoppsett ---
+    const MOVES = ['saks','stein','papir'];
+    const buttonsWrap = document.getElementById('buttons');
+    const logEl   = document.getElementById('log');
+    const dataEl  = document.getElementById('dataOut');
+    const mdEl    = document.getElementById('mdOut');
+    const countEl = document.getElementById('count');
+    const statusEl= document.getElementById('status');
+
+    // Gjør knapper for SAKS/STEIN/PAPIR
+    MOVES.forEach(m=>{
+      const b=document.createElement('button');
+      b.textContent=m.toUpperCase();
+      b.addEventListener('click', ()=> play(m));
+      buttonsWrap.appendChild(b);
+    });
+
+    // Last fra localStorage (frivillig men nyttig)
+    const LS_KEY = 'rps-data-v1';
+    let state = { lastMove: null, data: [] };
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed.data)) state.data = parsed.data;
+        if (typeof parsed.lastMove === 'string' || parsed.lastMove === null) state.lastMove = parsed.lastMove;
+      }
+    }catch{}
+
+    function saveLS(){
+      try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch{}
+    }
+
+    // Spill en runde og logg (prev -> next)
+    function play(player){
+      const comp = MOVES[Math.floor(Math.random()*3)];
+      const result = (player===comp) ? 'uavgjort'
+        : (player==='saks' && comp==='papir' || player==='stein' && comp==='saks' || player==='papir' && comp==='stein') ? 'seier' : 'tap';
+
+      logEl.textContent = `Du: ${player} · PC: ${comp} → ${result}`;
+
+      if (state.lastMove) {
+        state.data.push({ prev: state.lastMove, next: player });
+        saveLS();
+        updateViews();
+      }
+      state.lastMove = player;
+    }
+
+    // Oppdater visning (JSON + Markdown + teller)
+    function updateViews(){
+      const json = JSON.stringify(state.data, null, 2);
+      dataEl.textContent = json;
+      mdEl.textContent = '```json\n' + json + '\n```';
+      countEl.textContent = String(state.data.length);
+    }
+
+    // Kopier-verktøy
+    async function copyText(txt){
+      try{
+        await navigator.clipboard.writeText(txt);
+        flashStatus('Kopiert!');
+      }catch(err){
+        console.error(err);
+        flashStatus('Kunne ikke kopiere (prøv Ctrl+C).');
+      }
+    }
+    function flashStatus(msg){
+      statusEl.textContent = msg;
+      setTimeout(()=>{ statusEl.textContent=''; }, 1500);
+    }
+
+    document.getElementById('copyJsonBtn').addEventListener('click', ()=> copyText(dataEl.textContent));
+    document.getElementById('copyMdBtn').addEventListener('click', ()=> copyText(mdEl.textContent));
+    document.getElementById('downloadBtn').addEventListener('click', ()=>{
+      const blob = new Blob([dataEl.textContent||'[]'], {type: 'application/json'});
+      const url  = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'rps_dataset.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      flashStatus('Lastet ned rps_dataset.json');
+    });
+    document.getElementById('clearBtn').addEventListener('click', ()=>{
+      if (confirm('Tøm alle lagrede runder?')){
+        state = { lastMove: null, data: [] };
+        saveLS(); updateViews(); logEl.textContent = 'Nullstilt.';
+      }
+    });
+
+    // Init
+    updateViews();
+  </script>
+</body>
+</html>
