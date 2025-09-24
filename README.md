@@ -1,6 +1,6 @@
 # GluGlu
 
-Velkommen til **GluGlu** 🚀  
+Velkommen til **GluGlu** 
 En læringsplattform for teknologi og cybersikkerhet – laget for **skoler, bedrifter og samfunn**.  
 
 Vi ønsker å gjøre læring praktisk, gøy og tilgjengelig for alle.  
@@ -24,7 +24,7 @@ Her finner du steg-for-steg undervisningsopplegg, prosjekter og ressurser som ka
 ---
 
 ##  Slik bruker du GluGlu
-1. Gå til [nettstedet vårt](https://gluglu-dev.github.io).  
+1. Gå til [nettstedet vårt](https://gluglu.no).  
 2. Velg et tema fra forsiden.  
 3. Følg trinnene i undervisningsopplegget.  
 4. Lær i ditt eget tempo – sjekk av når du har fullført en oppgave.  
@@ -44,5 +44,5 @@ Dette prosjektet har **dobbel lisens**:
 
 ## 📧 Kontakt
 Har du spørsmål, eller ønsker du kommersiell lisens?  
-Send en e-post til:  gluglu.dev2025 [at] gmail [dot] com
+Send en e-post til:  contact [at] gluglu [dot] no
 
