@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GluGlu · Observability 101 – Prometheus + Grafana (Windows)</title>
+  <style>
+    :root {
+      --bg: #0f172a; /* slate-900 */
+      --panel: #111827; /* gray-900 */
+      --text: #e5e7eb; /* gray-200 */
+      --muted: #94a3b8; /* slate-400 */
+      --primary: #22c55e; /* green-500 */
+      --primary-2: #16a34a; /* green-600 */
+      --accent: #60a5fa; /* blue-400 */
+      --warn: #f59e0b; /* amber-500 */
+      --danger: #ef4444; /* red-500 */
+      --radius: 16px;
+      --shadow: 0 10px 25px rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg, #0b1022, var(--bg));
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 960px;
+      margin: 24px auto 64px;
+      padding: 0 16px;
+    }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-bottom: 16px;
+    }
+    .brand { font-size: 1.4rem; font-weight: 800; letter-spacing: .2px; }
+    .tag { color: var(--muted); font-size: .95rem; }
+
+    .card {
+      background: rgba(17,24,39,.85);
+      border: 1px solid rgba(148,163,184,.15);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card > .content { padding: 18px; }
+    .hero { display: grid; grid-template-columns: 1.1fr .9fr; gap: 16px; }
+    @media (max-width: 860px){ .hero { grid-template-columns: 1fr; } }
+
+    .pill { display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border-radius: 999px; font-weight: 600; }
+    .pill.ok { background: rgba(34,197,94,.15); color: #bbf7d0; border: 1px solid rgba(34,197,94,.35); }
+    .pill.info { background: rgba(96,165,250,.12); color:#dbeafe; border: 1px solid rgba(96,165,250,.35); }
+
+    .goals { display:flex; flex-wrap:wrap; gap:8px; margin: 8px 0 0; }
+
+    .toolbar { display:flex; flex-wrap:wrap; gap:8px; }
+    .btn {
+      appearance: none; outline: none; border: 1px solid rgba(148,163,184,.25);
+      background: linear-gradient(180deg, rgba(17,24,39,.6), rgba(17,24,39,.95));
+      color: var(--text); padding: 10px 14px; border-radius: 12px; cursor: pointer;
+      font-weight: 700; letter-spacing: .2px; transition: transform .04s ease, border-color .2s, background .2s;
+    }
+    .btn:hover { transform: translateY(-1px); border-color: rgba(148,163,184,.5); }
+    .btn:active { transform: translateY(0); }
+    .btn.primary { border-color: rgba(34,197,94,.5); background: linear-gradient(180deg, rgba(20,83,45,.55), rgba(22,163,74,.3)); }
+    .btn.ghost { background: transparent; }
+    .btn.small { padding: 8px 12px; font-weight: 600; }
+
+    .progress { height: 10px; border-radius: 999px; background: rgba(148,163,184,.2); overflow: hidden; }
+    .progress > span { display:block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width .3s ease; }
+
+    .layout { display:grid; grid-template-columns: 280px 1fr; gap: 16px; margin-top: 16px; }
+    @media (max-width: 980px){ .layout { grid-template-columns: 1fr; } }
+
+    .sidebar { position: sticky; top: 12px; align-self: start; }
+    .step-list { list-style: none; padding: 0; margin: 0; display:flex; flex-direction: column; gap:8px; }
+    .step-item { border:1px solid rgba(148,163,184,.2); border-radius: 12px; overflow: hidden; }
+    .step-item button { width: 100%; text-align: left; background: transparent; border: 0; color: var(--text); cursor: pointer; padding: 12px 14px; display:flex; align-items:center; gap:10px; }
+    .step-item[aria-current="step"] { border-color: rgba(34,197,94,.5); box-shadow: inset 0 0 0 1px rgba(34,197,94,.35); }
+
+    .status-dot { width: 10px; height: 10px; border-radius: 999px; background: rgba(148,163,184,.5); }
+    .done .status-dot { background: var(--primary); }
+    .active .status-dot { background: var(--accent); box-shadow: 0 0 0 4px rgba(96,165,250,.2); }
+
+    .step { display:none; }
+    .step.active { display:block; }
+    .step h3 { margin: 0 0 8px; font-size: 1.1rem; }
+    .step .panel { padding: 14px; background: rgba(2,6,23,.65); border: 1px dashed rgba(148,163,184,.3); border-radius: 12px; }
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono"; background:#0b1022; border:1px solid rgba(148,163,184,.3); border-bottom-width: 3px; padding: 2px 6px; border-radius: 6px; }
+
+    .nav { display:flex; gap:8px; justify-content: space-between; margin-top: 12px; }
+
+    .footnote { color: var(--muted); font-size: .9rem; margin-top: 8px; }
+
+    .toggle-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .switch { position: relative; width: 56px; height: 30px; background: rgba(148,163,184,.3); border-radius: 999px; cursor: pointer; border:1px solid rgba(148,163,184,.4); }
+    .switch span { position:absolute; top:2px; left:2px; width:26px; height:26px; border-radius: 999px; background: #fff; transition: left .2s ease; }
+    .switch[data-on="true"] span { left:28px; }
+
+    /* High-contrast mode */
+    body.hc {
+      --bg: #000; --panel: #000; --text: #fff; --muted: #ddd; --primary: #0f0; --accent: #0ff; --warn: #ff0; --danger: #f00;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <div class="brand">GluGlu · Observability-veileder</div>
+        <div class="tag">Forutsigbar, trinnvis læring – Prometheus, windows_exporter og Grafana på Windows</div>
+      </div>
+    <div class="toolbar">
+      <a href="../index.html" class="btn ghost small" aria-label="Til forsiden">← Til forsiden</a>
+      <button id="resetProgress" class="btn ghost small" aria-label="Nullstill fremdrift">🔄 Nullstill</button>
+      <button id="toggleAll" class="btn ghost small" aria-label="Vis alle steg">📋 Listevisning</button>
+      <button id="printBtn" class="btn ghost small" aria-label="Skriv ut">🖨️ Skriv ut</button>
+    </div>
+    </header>
+
+    <section class="card hero">
+      <div class="content">
+        <div class="pill ok">🎯 Leksjonsmål</div>
+        <h1 style="margin:10px 0 8px">Overvåk PC-en din med Prometheus + Grafana (Windows)</h1>
+        <p class="footnote">I dag skal du: (1) Installere Prometheus, (2) Installere windows_exporter, (3) Koble Grafana, (4) Importere dashboard.</p>
+        <div class="goals">
+          <span class="pill info"> Fast fremdrift</span>
+          <span class="pill info"> Små, tydelige steg</span>
+          <span class="pill info"> Eget tempo</span>
+          <span class="pill info"> Sjekkliste</span>
+        </div>
+        <div style="margin:12px 0 6px; font-weight:700">Fremdrift</div>
+        <div class="progress" aria-label="Fremdrift"><span id="progressBar"></span></div>
+        <div class="footnote">Tips: Fullfør hvert steg og trykk «Marker som fullført».</div>
+      </div>
+      <div class="content" style="border-left:1px solid rgba(148,163,184,.12)">
+        <div class="toggle-row" style="margin-bottom:10px">
+          <div>Høy-kontrast:</div>
+          <div id="hcSwitch" class="switch" role="switch" aria-checked="false" tabindex="0"><span></span></div>
+        </div>
+        <div class="panel">
+          <strong>Hva trenger du?</strong>
+          <ul>
+            <li>Windows-PC med administratorrettigheter</li>
+            <li>Nettleser (Brave/Chrome/Edge)</li>
+            <li>Valgfritt: VS Code for å redigere YAML</li>
+          </ul>
+          <strong>Begreper</strong>
+          <ul>
+            <li><span class="kbd">Exporter</span> = komponent som eksponerer metrics</li>
+            <li><span class="kbd">Scrape</span> = Prometheus henter metrics periodisk</li>
+            <li><span class="kbd">Data source</span> = Grafana kobler seg til Prometheus</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <aside class="sidebar card">
+        <div class="content">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px">
+            <strong>Stegene</strong>
+            <span id="doneCount" class="footnote">0 fullført</span>
+          </div>
+          <ol id="stepList" class="step-list" aria-label="Stegliste"></ol>
+        </div>
+      </aside>
+
+      <main class="card">
+        <div class="content">
+          <div id="steps"></div>
+          <div class="nav">
+            <button id="prevBtn" class="btn">← Forrige</button>
+            <button id="doneBtn" class="btn primary">✅ Marker som fullført</button>
+            <button id="nextBtn" class="btn">Neste →</button>
+          </div>
+          <div class="footnote">Denne veilederen lagrer fremdriften din i nettleseren (lokalt). Du kan trygt lukke og åpne siden igjen.</div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // === LÆRER: Rediger stegene her ===
+    const LESSON_ID = 'gluglu-observability-prom-graf-win-v1';
+const stepsData = [
+    {
+        "title": "Forberedelser og mål",
+        "body": "Mål: få grafer for CPU, RAM, disk og nettverk i Grafana.\n\nSjekk at du har en mappe: <span class=\"kbd\">C:\\prometheus</span>. Portene vi bruker lokalt er <span class=\"kbd\">9090</span> (Prometheus) og <span class=\"kbd\">9182</span> (windows_exporter).",
+        "checklist": [
+            "Har administratorrettigheter (ved behov)",
+            "Har laget mappen C:\\prometheus",
+            "Forstår at localhost betyr din egen PC"
+        ]
+    },
+    {
+        "title": "Last ned og pakk ut Prometheus",
+        "body": "Gå til Prometheus sin nedlastingsside. Last ned Windows (amd64) ZIP. Pakk ut og flytt innholdet til <span class=\"kbd\">C:\\prometheus</span>.",
+        "checklist": [
+            "ZIP lastet ned fra offisiell kilde",
+            "prometheus.exe ligger i C:\\prometheus",
+            "prometheus.yml ligger i C:\\prometheus"
+        ],
+        "links": [
+            {
+                "href": "https://prometheus.io/download/",
+                "label": "Prometheus downloads"
+            }
+        ]
+    },
+    {
+        "title": "Konfigurer prometheus.yml",
+        "body": "Åpne <span class=\"kbd\">C:\\prometheus\\prometheus.yml</span> og lim inn minimumskonfigurasjonen under. Lagre filen.",
+        "code": "global:\n  scrape_interval: 15s\n\nscrape_configs:\n  - job_name: \"prometheus\"\n    static_configs:\n      - targets: [\"localhost:9090\"]\n\n  - job_name: \"windows\"\n    static_configs:\n      - targets: [\"localhost:9182\"]",
+        "checklist": [
+            "Har lagt til job_name: \"windows\"",
+            "targets bruker \"localhost:9182\"",
+            "YAML-innrykk er korrekt"
+        ]
+    },
+    {
+        "title": "Valider konfig og start Prometheus",
+        "body": "Åpne PowerShell og kjør kommandoene under. La vinduet stå åpent mens Prometheus kjører.",
+        "code": "cd C:\\prometheus\n.\\promtool.exe check config prometheus.yml\n.\\prometheus.exe --config.file=prometheus.yml",
+        "checklist": [
+            "Får SUCCESS fra promtool",
+            "Prometheus starter uten røde feil",
+            "UI åpner på http://localhost:9090"
+        ]
+    },
+    {
+        "title": "Installer windows_exporter",
+        "body": "Last ned MSI-pakken fra releases og installer. I en lokal lab trenger du normalt ikke åpne firewall-unntak.",
+        "checklist": [
+            "Installerte MSI (ikke EXE)",
+            "windows_exporter er installert som tjeneste",
+            "Port 9182 er konfigurert"
+        ],
+        "links": [
+            {
+                "href": "https://github.com/prometheus-community/windows_exporter/releases",
+                "label": "windows_exporter releases"
+            }
+        ]
+    },
+    {
+        "title": "Test windows_exporter (/metrics)",
+        "body": "Åpne i nettleser: <span class=\"kbd\">http://localhost:9182/metrics</span>. Du skal se en lang tekst med linjer som starter med <span class=\"kbd\">windows_</span>.",
+        "checklist": [
+            "/metrics åpner uten feil",
+            "Ser windows_cpu_*",
+            "Ser windows_memory_*"
+        ],
+        "links": [
+            {
+                "href": "http://localhost:9182/metrics",
+                "label": "Åpne /metrics (lokalt)"
+            }
+        ]
+    },
+    {
+        "title": "Sjekk Targets i Prometheus",
+        "body": "I Prometheus: gå til <em>Status → Targets</em>. Du skal se en job som heter <span class=\"kbd\">windows</span> og den skal stå som <strong>UP</strong>.",
+        "checklist": [
+            "windows target vises",
+            "windows target er UP",
+            "Scrape skjer ca. hvert 15. sekund"
+        ],
+        "links": [
+            {
+                "href": "http://localhost:9090/targets",
+                "label": "Åpne Targets (lokalt)"
+            }
+        ]
+    },
+    {
+        "title": "Installer og åpne Grafana",
+        "body": "Installer Grafana på Windows. Velg gjerne \"Run Grafana as a Service\". Åpne Grafana på <span class=\"kbd\">http://localhost:3000</span> og logg inn lokalt.",
+        "checklist": [
+            "Grafana åpner på http://localhost:3000",
+            "Kan logge inn lokalt",
+            "Har endret admin-passord"
+        ],
+        "links": [
+            {
+                "href": "https://grafana.com/grafana/download",
+                "label": "Grafana downloads"
+            }
+        ]
+    },
+    {
+        "title": "Legg til Prometheus som Data Source",
+        "body": "I Grafana: <em>Connections → Data sources → Add data source → Prometheus</em>.\n\nSett URL til <span class=\"kbd\">http://localhost:9090/</span> og trykk <em>Save & Test</em> (grønn).",
+        "checklist": [
+            "Prometheus URL er http://localhost:9090/",
+            "Save & Test er grønn",
+            "Data source er satt som Default"
+        ]
+    },
+    {
+        "title": "Importer Windows-dashboard",
+        "body": "I Grafana: <em>Dashboards → New → Import</em>.\n\nBruk dashboard-ID <span class=\"kbd\">14694</span> og velg data source <strong>prometheus</strong>.",
+        "checklist": [
+            "Dashboard importert",
+            "Ser grafer for CPU/RAM/disk",
+            "Grafene oppdaterer seg"
+        ]
+    },
+    {
+        "title": "Oppgave: Bygg ditt eget System Health-dashboard",
+        "body": "Lag et nytt dashboard med 4 paneler:\n- CPU %\n- Ledig RAM\n- Ledig disk (C:)\n- Nettverk inn/ut\n\nVelg gjerne Stat og Time series der det passer.",
+        "checklist": [
+            "Har laget et nytt dashboard",
+            "Har minst 4 paneler",
+            "Har lagret dashboardet"
+        ]
+    },
+    {
+        "title": "Refleksjon og feilsøking",
+        "body": "Skriv 3 punkter:\n(1) Hva fungerte bra?\n(2) Hva var vanskelig?\n(3) Hva vil du forbedre?\n\nHvis noe feiler: sjekk <em>Status → Targets</em> i Prometheus og <span class=\"kbd\">/metrics</span> på 9182.",
+        "checklist": [
+            "Skrevet refleksjon",
+            "Vet hvor Targets ligger",
+            "Vet hvor /metrics ligger"
+        ]
+    }
+];
+
+    // === App state ===
+    const state = {
+      active: 0,
+      done: new Set(),
+      allOpen: false,
+    };
+
+    // Load from localStorage
+    (()=> {
+      const raw = localStorage.getItem(LESSON_ID);
+      if (raw) {
+        try {
+          const saved = JSON.parse(raw);
+          if (typeof saved.active === 'number') state.active = saved.active;
+          if (Array.isArray(saved.done)) state.done = new Set(saved.done);
+          if (typeof saved.allOpen === 'boolean') state.allOpen = saved.allOpen;
+          if (typeof saved.hc === 'boolean') document.body.classList.toggle('hc', saved.hc);
+          document.getElementById('hcSwitch')?.setAttribute('data-on', saved.hc ? 'true' : 'false');
+          document.getElementById('hcSwitch')?.setAttribute('aria-checked', saved.hc ? 'true' : 'false');
+        } catch {}
+      }
+    })();
+
+    function save(){
+      const hc = document.body.classList.contains('hc');
+      localStorage.setItem(LESSON_ID, JSON.stringify({ active: state.active, done: [...state.done], allOpen: state.allOpen, hc }));
+    }
+
+    const stepsRoot = document.getElementById('steps');
+    const stepList = document.getElementById('stepList');
+    const progressBar = document.getElementById('progressBar');
+    const doneCount = document.getElementById('doneCount');
+
+    function renderSideList(){
+      stepList.innerHTML = '';
+      stepsData.forEach((s, i)=> {
+        const li = document.createElement('li');
+        li.className = 'step-item' + (state.done.has(i)?' done':'') + (state.active===i?' active':'');
+        li.setAttribute('aria-current', state.active===i ? 'step' : 'false');
+        const btn = document.createElement('button');
+        btn.innerHTML = `<span class="status-dot"></span><span style="flex:1">${i+1}. ${s.title}</span>`;
+        btn.addEventListener('click', ()=> { state.active = i; render(); save(); window.scrollTo({ top: 0, behavior: 'smooth'}); });
+        li.appendChild(btn);
+        stepList.appendChild(li);
+      });
+    }
+
+    function codeBlock(text){
+      const pre = document.createElement('pre');
+      pre.style.background = '#0b1022';
+      pre.style.border = '1px solid rgba(148,163,184,.25)';
+      pre.style.borderRadius = '12px';
+      pre.style.padding = '12px';
+      pre.style.overflow = 'auto';
+      pre.style.whiteSpace = 'pre-wrap';
+      pre.style.wordBreak = 'break-word';
+      const code = document.createElement('code');
+      code.textContent = text;
+      pre.appendChild(code);
+      return pre;
+    }
+
+    function linkRow(links){
+      const wrap = document.createElement('div');
+      wrap.style.display = 'flex';
+      wrap.style.flexWrap = 'wrap';
+      wrap.style.gap = '8px';
+      links.forEach(l => {
+        const a = document.createElement('a');
+        a.href = l.href; a.target = '_blank'; a.rel = 'noreferrer noopener';
+        a.className = 'btn small';
+        a.textContent = '🔗 ' + l.label;
+        wrap.appendChild(a);
+      });
+      return wrap;
+    }
+
+    function renderSteps(){
+      stepsRoot.innerHTML = '';
+      stepsData.forEach((s, i)=> {
+        const step = document.createElement('section');
+        step.className = 'step' + ((state.active===i || state.allOpen)?' active':'');
+
+        const h = document.createElement('h3');
+        h.innerHTML = `${i+1}. ${s.title}`;
+        step.appendChild(h);
+
+        const body = document.createElement('div');
+        body.className = 'panel';
+        body.innerHTML = s.body.replaceAll('\n','<br/>');
+        step.appendChild(body);
+
+        if (s.code) step.appendChild(codeBlock(s.code));
+        if (s.links && s.links.length) step.appendChild(linkRow(s.links));
+
+        if (s.checklist?.length){
+          const list = document.createElement('ul');
+          list.style.marginTop = '8px';
+          s.checklist.forEach((item,j)=> {
+            const id = `c_${i}_${j}`;
+            const li = document.createElement('li');
+            const label = document.createElement('label');
+            label.style.display = 'flex';
+            label.style.alignItems = 'center';
+            label.style.gap = '8px';
+
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.id = id;
+            cb.checked = localStorage.getItem(LESSON_ID + ':' + id) === '1';
+            cb.addEventListener('change', ()=> { localStorage.setItem(LESSON_ID + ':' + id, cb.checked? '1':'0'); });
+
+            label.appendChild(cb);
+            const span = document.createElement('span');
+            span.textContent = item;
+            label.appendChild(span);
+
+            li.appendChild(label);
+            list.appendChild(li);
+          });
+          step.appendChild(list);
+        }
+
+        stepsRoot.appendChild(step);
+      });
+    }
+
+    function renderProgress(){
+      const total = stepsData.length;
+      const done = state.done.size;
+      const pct = Math.round((done/total)*100);
+      progressBar.style.width = pct + '%';
+      doneCount.textContent = `${done} fullført`;
+    }
+
+    function render(){
+      renderSideList();
+      renderSteps();
+      renderProgress();
+      document.getElementById('prevBtn').disabled = (state.active === 0);
+      document.getElementById('nextBtn').disabled = (state.active === stepsData.length-1);
+      document.getElementById('doneBtn').textContent = state.done.has(state.active) ? '☑️ Markert – angre?' : '✅ Marker som fullført';
+      document.getElementById('toggleAll').textContent = state.allOpen ? '📋 Skjul liste' : '📋 Listevisning';
+    }
+
+    // Controls
+    document.getElementById('prevBtn').addEventListener('click', ()=> {
+      if (state.active>0){ state.active--; render(); save(); window.scrollTo({ top: 0, behavior: 'smooth'}); }
+    });
+    document.getElementById('nextBtn').addEventListener('click', ()=> {
+      if (state.active<stepsData.length-1){ state.active++; render(); save(); window.scrollTo({ top: 0, behavior: 'smooth'}); }
+    });
+    document.getElementById('doneBtn').addEventListener('click', ()=> {
+      if (state.done.has(state.active)) state.done.delete(state.active); else state.done.add(state.active);
+      render(); save();
+    });
+    document.getElementById('toggleAll').addEventListener('click', ()=> { state.allOpen = !state.allOpen; render(); save(); });
+    document.getElementById('resetProgress').addEventListener('click', ()=> {
+      if (confirm('Vil du nullstille fremdriften?')){
+        state.active = 0; state.done = new Set();
+        Object.keys(localStorage).forEach(k=> { if (k.startsWith(LESSON_ID+':')) localStorage.removeItem(k); });
+        render(); save();
+      }
+    });
+    document.getElementById('printBtn').addEventListener('click', ()=> { window.print(); });
+
+    // High-contrast toggle
+    const hcSwitch = document.getElementById('hcSwitch');
+    function setHC(on){
+      document.body.classList.toggle('hc', !!on);
+      hcSwitch.setAttribute('data-on', on ? 'true' : 'false');
+      hcSwitch.setAttribute('aria-checked', on ? 'true' : 'false');
+      save();
+    }
+    hcSwitch.addEventListener('click', ()=> setHC(!document.body.classList.contains('hc')));
+    hcSwitch.addEventListener('keydown', (e)=> { if (e.key===' '|| e.key==='Enter'){ e.preventDefault(); setHC(!document.body.classList.contains('hc')); } });
+
+    // Initial render
+    render();
+  </script>
+</body>
+</html>
